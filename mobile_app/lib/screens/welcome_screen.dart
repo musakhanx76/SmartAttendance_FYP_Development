@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'teacher_dashboard.dart';
 import 'login_screen.dart';
+import 'teacher_login_screen.dart';
 import '../main.dart'; // Importing your RegisterScreen from main.dart
 
 class WelcomeScreen extends StatelessWidget {
@@ -11,6 +12,7 @@ class WelcomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       body: SafeArea(
+        child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
           child: Column(
@@ -34,7 +36,7 @@ class WelcomeScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: Colors.black54),
               ),
-              const Spacer(),
+              const SizedBox(height: 60),
               
               const Text(
                 'Please select your role to continue:',
@@ -44,7 +46,7 @@ class WelcomeScreen extends StatelessWidget {
               const SizedBox(height: 20),
 
               // Teacher Button
-              _buildRoleButton(
+             _buildRoleButton(
                 context,
                 title: 'I am a Teacher',
                 icon: Icons.assignment_ind_rounded,
@@ -52,7 +54,8 @@ class WelcomeScreen extends StatelessWidget {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const TeacherDashboard()),
+                    
+                    MaterialPageRoute(builder: (context) => const TeacherLoginScreen()),
                   );
                 },
               ),
@@ -91,6 +94,7 @@ class WelcomeScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

@@ -1,3 +1,6 @@
+import random 
+import csv
+import string
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
@@ -6,10 +9,11 @@ from .serializers import StudentSerializer
 """from .models import Student
 from .ai_utils import extract_face_blueprint # Import our new AI Brain"""
 from django.core.files.storage import FileSystemStorage
-from .models import Student, Attendance, ClassRoom, Enrollment , ClassSession
+from .models import Student, Attendance, ClassRoom, Enrollment , ClassSession, Teacher
 from datetime import date
 from .ai_utils import extract_face_blueprint, scan_classroom_faces
 from django.http import JsonResponse
+from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
 @api_view(['POST'])
@@ -52,62 +56,75 @@ def register_student(request):
             )
             
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-#for marking attendance
 @api_view(['POST'])
 def mark_attendance(request):
     """
     Receives a classroom photo/video from the teacher, scans it using AI,
     and marks recognized students as Present in the database.
     """
-    # 1. Grab the uploaded file from the request
+    # 1. Grab the uploaded file AND the course code from the request
     uploaded_file = request.FILES.get('classroom_media')
+    
+    # 🌟 ADDITION 1: Catch the course code sent by Flutter
+    course_code = request.data.get('course_code') 
     
     if not uploaded_file:
         return Response({"error": "No image or video file provided."}, status=status.HTTP_400_BAD_REQUEST)
+    if not course_code:
+        return Response({"error": "No class selected."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # 2. Temporarily save the file so OpenCV can read it
     fs = FileSystemStorage()
     filename = fs.save(uploaded_file.name, uploaded_file)
     file_path = fs.path(filename)
 
     try:
-        # 3. Pull ALL known blueprints from the PostgreSQL vault
+        # 🌟 ADDITION 2: Find the specific classroom in the database
+        classroom = ClassRoom.objects.get(course_code=course_code)
+
         all_students = Student.objects.exclude(face_encoding__isnull=True)
-        
-        # Format them into the dictionary our AI expects: {"roll_no": [128_numbers]}
         known_students_dict = {student.rollNo: student.face_encoding for student in all_students}
         
         if not known_students_dict:
             return Response({"error": "No students registered in the database yet!"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 4. Wake up the Hybrid AI!
         present_roll_nos, message = scan_classroom_faces(file_path, known_students_dict)
         
-        # 5. Save the results to the Attendance table
         marked_names = []
+        today = date.today() # Get today's date
+
         for roll_no in present_roll_nos:
             student = Student.objects.get(rollNo=roll_no)
             
-            # get_or_create prevents errors if the teacher scans the same class twice in one day
-            attendance_record, created = Attendance.objects.get_or_create(
-                student=student,
-                status="Present"
-                # date and time are added automatically by the model
-            )
+            # 🌟 ADDITION 3: Check for today's attendance in THIS specific class
+            # (We use a manual check instead of get_or_create because date fields with auto_now_add can be tricky)
+            already_marked = Attendance.objects.filter(
+                student=student, 
+                classroom=classroom, 
+                date=today
+            ).exists()
+
+            if not already_marked:
+                Attendance.objects.create(
+                    student=student,
+                    classroom=classroom, # Link the class!
+                    status="Present"
+                )
+            
             marked_names.append(student.name)
 
-        # 6. Clean up: Delete the teacher's heavy video/photo to save server space
         fs.delete(filename)
 
-        # 7. Send the success list back to the Flutter app!
         return Response({
             "message": "AI Scanning Complete!",
             "recognized_count": len(marked_names),
             "present_students": marked_names
         }, status=status.HTTP_200_OK)
 
+    except ClassRoom.DoesNotExist:
+        fs.delete(filename)
+        return Response({"error": "Invalid course code provided."}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        fs.delete(filename) # Ensure we still clean up if it crashes
+        fs.delete(filename)
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 #for deleting student    
@@ -309,7 +326,138 @@ class StudentRegisterView(APIView):
                 "errors": serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)"""
 
-# 2. CREATE CLASS VIEW (Added this back to stop the error!)
 class CreateClassView(APIView):
     def post(self, request):
-        return Response({"message": "Class creation logic goes here"})
+        class_name = request.data.get('name') 
+        course_code = request.data.get('course_code') 
+        
+        if not class_name or not course_code:
+            return Response({"error": "Class name and course code are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Generate the random 6-character uppercase code (e.g., 'X7B9WQ')
+        secure_join_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+
+        # 2. THE FIX: Tell Python to save it to the ClassRoom table!
+        new_class = ClassRoom.objects.create(
+            name=class_name,
+            course_code=course_code, # Passing the course code from Flutter!
+            join_code=secure_join_code
+        )
+
+        print(f"DATABASE SUCCESS: Created class {new_class.name} with code {new_class.join_code}")
+
+        # Send the new code BACK to Flutter so the Teacher can see it
+        return Response(
+            {
+                "message": "Class created successfully!", 
+                "join_code": new_class.join_code
+            }, 
+            status=status.HTTP_201_CREATED
+        )
+
+
+class TeacherLoginView(APIView):
+    def post(self, request):
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        try:
+            teacher = Teacher.objects.get(email=email, password=password)
+            
+            # THE CHECK: Are they approved by the Admin?
+            if not teacher.is_approved:
+                return Response({
+                    "error": "Account pending. Please wait for University IT to verify your identity."
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            return Response({
+                "message": "Login successful!",
+                "teacher_name": teacher.name
+            }, status=status.HTTP_200_OK)
+            
+        except Teacher.DoesNotExist:
+            return Response({"error": "Invalid email or password."}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+
+class TeacherRegistrationView(APIView):
+    def post(self, request):
+        name = request.data.get('name')
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        # 1. Make sure they didn't leave anything blank
+        if not name or not email or not password:
+            return Response({"error": "All fields are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2. Check if this email is already in the system
+        if Teacher.objects.filter(email=email).exists():
+            return Response({"error": "This email is already registered."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 3. Create the pending account! (is_approved defaults to False automatically)
+        new_teacher = Teacher.objects.create(
+            name=name, 
+            email=email, 
+            password=password
+        )
+
+        return Response({
+            "message": "Account request sent! Please wait for Admin approval."
+        }, status=status.HTTP_201_CREATED)
+
+
+class GetTeacherClassesView(APIView):
+    def get(self, request):
+        # Grabs all class names and codes to populate the Flutter Dropdown
+        classes = ClassRoom.objects.all().values('name', 'course_code')
+        return Response({"classes": list(classes)}, status=status.HTTP_200_OK)
+
+class GetClassReportView(APIView):
+    def get(self, request, course_code, date_str):
+        attendances = Attendance.objects.filter(
+            classroom__course_code=course_code, 
+            date=date_str
+        ).order_by('-time')
+
+        if not attendances.exists():
+            return Response({"message": "No attendance records found for this class on this date.", "records": []})
+
+        records = []
+        for record in attendances:
+            records.append({
+                "name": record.student.name,
+                "rollNo": record.student.rollNo,
+                "time": record.time.strftime('%H:%M:%S'),
+                "status": record.status
+            })
+
+        return Response({"message": "Success", "records": records}, status=status.HTTP_200_OK)
+
+
+import csv
+from django.http import HttpResponse
+
+class ExportClassAttendanceCSV(APIView):
+    def get(self, request, course_code, date_str): 
+        Attendance.objects.filter(classroom__course_code=course_code, date=date_str)
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="Attendance_{course_code}_{date_str}.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(['Class Code', 'Student Name', 'Roll Number', 'Date', 'Time', 'Status'])
+
+        # Filter by class AND date
+        student_ids = Enrollment.objects.filter(classroom__course_code=course_code, is_approved=True).values_list('student', flat=True)
+        attendances = Attendance.objects.filter(student__id__in=student_ids, date=date_str).order_by('student__name')
+
+        for record in attendances:
+            writer.writerow([
+                course_code,
+                record.student.name,
+                record.student.rollNo,
+                record.date.strftime('%Y-%m-%d'),
+                record.time.strftime('%H:%M:%S'),
+                record.status
+            ])
+
+        return response

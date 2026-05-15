@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -23,6 +23,8 @@ urlpatterns = [
     path('my_students/', get_approved_students, name='my_students'),
     path('remove_student/<int:enrollment_id>/', remove_student_from_class, name='remove_student'),
     path('student_login/', student_login, name='student_login'),
+    
+    path('api/', include('api.urls')),
 ]
 
 if settings.DEBUG:

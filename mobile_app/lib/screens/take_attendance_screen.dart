@@ -1,8 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:dio/dio.dart'; 
-import '../api_constants.dart';
+import 'package:dio/dio.dart';
+import 'dart:io';
 
 class TakeAttendanceScreen extends StatefulWidget {
   const TakeAttendanceScreen({Key? key}) : super(key: key);
@@ -12,107 +11,89 @@ class TakeAttendanceScreen extends StatefulWidget {
 }
 
 class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
-  File? _selectedMedia;
   bool _isLoading = false;
+  List<dynamic> _availableClasses = [];
+  String? _selectedCourseCode;
   
-  List<String> _presentStudents = [];
-  int _recognizedCount = 0;
-
+  // We use ImagePicker to easily open the native camera
   final ImagePicker _picker = ImagePicker();
 
-  void _showPickerModal() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Wrap(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.photo_library, color: Colors.indigo),
-                title: const Text('Choose from Gallery'),
-                onTap: () {
-                  _pickMedia(ImageSource.gallery);
-                  Navigator.of(context).pop();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.camera_alt, color: Colors.indigo),
-                title: const Text('Take a Photo/Video'),
-                onTap: () {
-                  _pickMedia(ImageSource.camera);
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
+  @override
+  void initState() {
+    super.initState();
+    _fetchClasses(); // Get the classes as soon as the screen opens!
   }
 
-  Future<void> _pickMedia(ImageSource source) async {
+  // 1. Grab the classes from Django for the Dropdown
+  Future<void> _fetchClasses() async {
+    // 🔥 CHANGE THIS TO YOUR IP
+    String url = 'http://192.168.100.5:8000/api/get_classes/'; 
     try {
-      final XFile? pickedFile = await _picker.pickImage(source: source);
-      
-      if (pickedFile != null) {
+      var response = await Dio().get(url);
+      if (response.statusCode == 200 && response.data['classes'].isNotEmpty) {
         setState(() {
-          _selectedMedia = File(pickedFile.path);
-          _presentStudents = []; 
+          _availableClasses = response.data['classes'];
+          // Default to the first class in the list
+          _selectedCourseCode = _availableClasses[0]['course_code']; 
         });
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error selecting media: $e')),
+        const SnackBar(content: Text('Error loading classes.')),
       );
     }
   }
 
-  Future<void> _processAttendance() async {
-    if (_selectedMedia == null) return;
+  // 2. Open Camera, Capture Image, and Send to Django
+  Future<void> _openCameraAndScan() async {
+    if (_selectedCourseCode == null) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    // Open the camera to take a picture (You can change this to pickVideo if you prefer)
+    final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
+    
+    if (photo == null) return; // The teacher cancelled the camera
+
+    setState(() { _isLoading = true; });
 
     try {
-      var dio = Dio();
-      String fileName = _selectedMedia!.path.split('/').last;
-      
+      String url = 'http://192.168.100.5:8000/api/mark_attendance/';
+
+      // 🌟 THIS IS THE MAGIC: We package the File AND the Course Code together!
       FormData formData = FormData.fromMap({
-        "classroom_media": await MultipartFile.fromFile(_selectedMedia!.path, filename: fileName),
+        "course_code": _selectedCourseCode, // Sent as text
+        "classroom_media": await MultipartFile.fromFile(photo.path, filename: photo.name), // Sent as a file
       });
 
-      // 🔥 IMPORTANT: CHANGE THIS IP TO YOUR COMPUTER's IPv4 ADDRESS! 🔥
-      var response = await dio.post(
-      '${ApiConstants.baseUrl}/mark_attendance/', 
-      data: formData,
-      );
+      var response = await Dio().post(url, data: formData);
 
       if (response.statusCode == 200) {
-        setState(() {
-          _recognizedCount = response.data['recognized_count'];
-          _presentStudents = List<String>.from(response.data['present_students']);
-        });
+        if (!mounted) return;
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('AI Scan Complete! Found $_recognizedCount students.'),
-            backgroundColor: Colors.green,
+        // Success! Show how many students were marked.
+        int count = response.data['recognized_count'];
+        List<dynamic> names = response.data['present_students'];
+        
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('✅ Scan Complete!'),
+            content: Text('Marked $count students present:\n\n${names.join(", ")}'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context), 
+                child: const Text('Awesome', style: TextStyle(color: Colors.teal))
+              )
+            ],
           ),
         );
       }
-
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Server Error: $e'), backgroundColor: Colors.red),
+        const SnackBar(content: Text('Failed to process image with AI.'), backgroundColor: Colors.red),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() { _isLoading = false; });
     }
   }
 
@@ -126,93 +107,77 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
         elevation: 0,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            GestureDetector(
-              onTap: _showPickerModal,
-              child: Container(
-                height: 250,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.teal.shade200, width: 2, style: BorderStyle.solid),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5)),
-                  ],
-                ),
-                child: _selectedMedia == null
-                    ? Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.add_a_photo, size: 60, color: Colors.teal.shade300),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Tap to Select Classroom Photo',
-                            style: TextStyle(fontSize: 16, color: Colors.teal.shade700, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      )
-                    : ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
-                        child: Image.file(_selectedMedia!, fit: BoxFit.cover),
-                      ),
+            const Icon(Icons.document_scanner_rounded, size: 100, color: Colors.teal),
+            const SizedBox(height: 32),
+            
+            const Text(
+              'Select a class to scan:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+
+            // THE DROPDOWN MENU
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.teal, width: 2),
               ),
+              child: _availableClasses.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Center(child: Text("Loading classes...")),
+                  )
+                : DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: _selectedCourseCode,
+                      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.teal),
+                      style: const TextStyle(fontSize: 18, color: Colors.black87, fontWeight: FontWeight.bold),
+                      onChanged: (String? newValue) {
+                        setState(() { _selectedCourseCode = newValue!; });
+                      },
+                      items: _availableClasses.map<DropdownMenuItem<String>>((dynamic classItem) {
+                        return DropdownMenuItem<String>(
+                          value: classItem['course_code'],
+                          child: Text("${classItem['name']} (${classItem['course_code']})"),
+                        );
+                      }).toList(),
+                    ),
+                  ),
             ),
             
-            const SizedBox(height: 24),
+            const SizedBox(height: 48),
 
+            // THE CAMERA BUTTON
             SizedBox(
-              height: 55,
+              height: 60,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _selectedMedia == null ? Colors.grey : Colors.teal,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: Colors.teal,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 6,
                 ),
-                onPressed: _selectedMedia == null || _isLoading ? null : _processAttendance,
                 icon: _isLoading 
-                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Icon(Icons.document_scanner_rounded, size: 28),
-                label: Text(
-                  _isLoading ? 'AI Analyzing Faces...' : 'Run AI Scanner',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+                  ? const SizedBox() 
+                  : const Icon(Icons.camera_alt_rounded, size: 28, color: Colors.white),
+                label: _isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text(
+                      'Open Camera & Scan', 
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)
+                    ),
+                // Disable button if loading or if no classes exist
+                onPressed: (_isLoading || _availableClasses.isEmpty) ? null : _openCameraAndScan,
               ),
             ),
-
-            const SizedBox(height: 30),
-
-            if (_presentStudents.isNotEmpty) ...[
-              Text(
-                'Present Students (${_presentStudents.length})',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: _presentStudents.length,
-                  itemBuilder: (context, index) {
-                    return Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.teal.shade100,
-                          child: const Icon(Icons.person, color: Colors.teal),
-                        ),
-                        title: Text(
-                          _presentStudents[index],
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        trailing: const Icon(Icons.check_circle, color: Colors.green),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ]
           ],
         ),
       ),

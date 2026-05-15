@@ -13,7 +13,20 @@ class Student(models.Model):
     
     def __str__(self):
         return f"{self.name} - {self.rollNo}"
-    
+
+class Teacher(models.Model):
+    name = models.CharField(max_length=100)
+    email = models.EmailField(unique=True)
+    password = models.CharField(max_length=50) # In production, use hashed passwords!
+
+# NEW: The Admin Approval Switch! Default is False so they can't log in immediately.
+    is_approved = models.BooleanField(default=False)
+
+    def __str__(self):
+        status = "✅ Approved" if self.is_approved else "❌ Pending"
+        return f"{self.name} ({status})"
+
+        
 class ClassRoom(models.Model):
     """The actual class created by the teacher"""
     name = models.CharField(max_length=100) # e.g., "Physics 101"
@@ -68,6 +81,7 @@ class Attendance(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     date = models.DateField(auto_now_add=True)  # Automatically grabs today's date
     time = models.TimeField(auto_now_add=True)  # Automatically grabs the exact time
+    classroom = models.ForeignKey(ClassRoom, on_delete=models.CASCADE, null=True)
     status = models.CharField(max_length=20, default="Present")
 
     class Meta:

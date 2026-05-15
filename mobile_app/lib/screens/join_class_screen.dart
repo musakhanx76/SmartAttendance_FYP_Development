@@ -93,7 +93,7 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
               TextField(
                 controller: _joinCodeController,
                 decoration: InputDecoration(
-                  labelText: 'Class Join Code (e.g., PS101-CODE)',
+                  labelText: 'Class Join Code (e.g., X7B9WQ)',
                   prefixIcon: const Icon(Icons.vpn_key_rounded),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   filled: true,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 
 class CreateClassScreen extends StatefulWidget {
   const CreateClassScreen({Key? key}) : super(key: key);
@@ -13,7 +14,7 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
   final TextEditingController _courseCodeController = TextEditingController();
   
   bool _isLoading = false;
-  String? _generatedClassCode; // Holds the code after the backend generates it
+  String? _generatedClassCode; 
 
   Future<void> _submitClass() async {
     if (!_formKey.currentState!.validate()) return;
@@ -24,42 +25,63 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
     });
 
     try {
-      // TODO: Connect to your Django backend here!
-      // You will use Dio (like you did for the video upload) to send this data
-      // to your 'api/create_class/' endpoint.
-      
-      /* Example Dio Call:
-      var response = await dio.post('http://YOUR_IP:8000/api/create_class/', data: {
-        'course_name': _courseNameController.text,
-        'course_code': _courseCodeController.text,
-      });
-      
-      setState(() {
-        _generatedClassCode = response.data['class_code']; // Get the code from Django
-      });
-      */
+      // 🔥 CHANGE THIS TO YOUR EXACT IP ADDRESS (e.g., 192.168.1.45)
+      // DO NOT remove the trailing slash / at the end of the URL!
+      String url = 'http://192.168.100.5:8000/api/create_class/'; 
 
-      // --- MOCK DELAY (Remove this when you add the Dio code above) ---
-      await Future.delayed(const Duration(seconds: 2));
-      setState(() {
-        _generatedClassCode = "${_courseCodeController.text.toUpperCase()}-${DateTime.now().millisecond}";
-      });
-      // ---------------------------------------------------------------
+      final dio = Dio(BaseOptions(
+        connectTimeout: const Duration(seconds: 4),
+        receiveTimeout: const Duration(seconds: 4),
+      ));
 
+      var response = await dio.post(url, data: {
+        'name': _courseNameController.text.trim(),
+        'course_code': _courseCodeController.text.trim(),
+      });
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        setState(() {
+          _generatedClassCode = response.data['join_code']; 
+        });
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Class created successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } on DioException catch (e) {
+      String errorMessage = "Network Error";
+      
+      if (e.response != null) {
+        if (e.response?.statusCode == 404) {
+          errorMessage = "404 Error: Django cannot find this URL path.";
+        } else if (e.response?.data is Map && e.response?.data['error'] != null) {
+          errorMessage = e.response?.data['error'];
+        } else {
+          errorMessage = "Server crashed (Status ${e.response?.statusCode}). Check Django terminal.";
+        }
+      } else {
+        errorMessage = "Could not reach server. Check IP address and Wi-Fi.";
+      }
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Class created successfully!'),
-          backgroundColor: Colors.green,
-        ),
+        SnackBar(content: Text(errorMessage), backgroundColor: Colors.red, duration: const Duration(seconds: 4)),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Unexpected Error: $e'), backgroundColor: Colors.red),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -84,7 +106,6 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // The Input Form Card
             Card(
               elevation: 4,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -100,53 +121,38 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
                         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 20),
-                      
-                      // Course Name Field
                       TextFormField(
                         controller: _courseNameController,
                         decoration: InputDecoration(
                           labelText: 'Course Name (e.g., Software Engineering)',
                           prefixIcon: const Icon(Icons.menu_book_rounded),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         validator: (value) => value!.isEmpty ? 'Please enter a course name' : null,
                       ),
                       const SizedBox(height: 16),
-                      
-                      // Course Code Field
                       TextFormField(
                         controller: _courseCodeController,
                         decoration: InputDecoration(
-                          labelText: 'Course Code (e.g., CS-401)',
+                          labelText: 'Course Code (e.g., CS401)',
                           prefixIcon: const Icon(Icons.code_rounded),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         validator: (value) => value!.isEmpty ? 'Please enter a course code' : null,
                       ),
                       const SizedBox(height: 24),
-                      
-                      // Submit Button
                       SizedBox(
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.indigo,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           onPressed: _isLoading ? null : _submitClass,
                           child: _isLoading
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : const Text(
-                                  'Generate Class',
-                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                ),
+                              ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Text('Generate Class', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         ),
                       ),
                     ],
@@ -154,10 +160,7 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
                 ),
               ),
             ),
-            
             const SizedBox(height: 30),
-
-            // The Result Card (Only shows up after the class is created)
             if (_generatedClassCode != null)
               Card(
                 color: Colors.green[50],
@@ -172,24 +175,11 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
                     children: [
                       const Icon(Icons.check_circle_outline, color: Colors.green, size: 60),
                       const SizedBox(height: 12),
-                      const Text(
-                        'Share this code with your students:',
-                        style: TextStyle(fontSize: 16, color: Colors.black87),
-                      ),
+                      const Text('Share this code with your students:', style: TextStyle(fontSize: 16, color: Colors.black87)),
                       const SizedBox(height: 12),
                       SelectableText(
                         _generatedClassCode!,
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.indigo,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        '(They will use this to join the class)',
-                        style: TextStyle(fontSize: 14, color: Colors.black54),
+                        style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.indigo, letterSpacing: 2),
                       ),
                     ],
                   ),
