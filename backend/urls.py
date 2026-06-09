@@ -20,7 +20,6 @@ urlpatterns = [
     path('join_class/', join_class, name='join_class'),
     path('pending_requests/', get_pending_requests, name='pending_requests'),
     path('approve_student/<int:enrollment_id>/', approve_student, name='approve_student'),
-    path('my_students/', get_approved_students, name='my_students'),
     path('remove_student/<int:enrollment_id>/', remove_student_from_class, name='remove_student'),
     path('student_login/', student_login, name='student_login'),
     

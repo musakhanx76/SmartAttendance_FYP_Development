@@ -24,7 +24,7 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
     setState(() { _isLoading = true; });
 
     // 🔥 CHANGE THIS TO YOUR ACTUAL IP ADDRESS
-    String url = 'http://192.168.100.5:8000/join_class/';
+    String url = 'http://10.121.30.235:8000/join_class/';
 
     try {
       var response = await Dio().post(url, data: {

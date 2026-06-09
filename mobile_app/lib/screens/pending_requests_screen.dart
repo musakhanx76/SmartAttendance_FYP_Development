@@ -22,7 +22,7 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
     setState(() => _isLoading = true);
     
     // 🔥 CHANGE THIS TO YOUR ACTUAL IP ADDRESS
-    String url = 'http://192.168.100.5:8000/pending_requests/';
+    String url = 'http://10.121.30.235:8000/pending_requests/';
 
     try {
       var response = await Dio().get(url);
@@ -42,7 +42,7 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
 
   Future<void> _approveStudent(int enrollmentId, int index) async {
     // 🔥 CHANGE THIS TO YOUR ACTUAL IP ADDRESS
-    String url = 'http://192.168.100.5:8000/approve_student/$enrollmentId/';
+    String url = 'http://10.121.30.235:8000/approve_student/$enrollmentId/';
 
     try {
       var response = await Dio().post(url);

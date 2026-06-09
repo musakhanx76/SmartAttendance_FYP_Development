@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 
 class ViewReportsScreen extends StatefulWidget {
@@ -27,29 +28,45 @@ class _ViewReportsScreenState extends State<ViewReportsScreen> {
 
   // 🌟 FIX 2: Add this to get the classes for the dropdown
   Future<void> _fetchClasses() async {
-    String url = 'http://192.168.100.5:8000/api/get_classes/'; 
     try {
+      // 1. Get the Teacher ID from memory
+      final prefs = await SharedPreferences.getInstance();
+      final int? teacherId = prefs.getInt('teacher_id');
+
+      if (teacherId == null) {
+        setState(() => _message = "Error: Please log out and log back in.");
+        return;
+      }
+
+      // 2. Inject the ID into the URL (Make sure this matches your Django urls.py)
+      String url = 'http://10.121.30.235:8000/api/get_classes/$teacherId/';
+      
       var response = await Dio().get(url);
       if (response.statusCode == 200) {
         setState(() {
-          _availableClasses = response.data['classes'];
+          _availableClasses = response.data['classes'] ?? [];
           if (_availableClasses.isNotEmpty) {
             _selectedCourseCode = _availableClasses[0]['course_code'];
+          } else {
+            _message = "No classes found for this account.";
           }
         });
-        _fetchReports();
+        // Only fetch reports if we actually have a class selected
+        if (_selectedCourseCode != null) {
+          _fetchReports();
+        }
       }
     } catch (e) {
       print("Error fetching classes: $e");
+      setState(() => _message = "Failed to load classes. Check server connection.");
     }
   }
-
   Future<void> _fetchReports() async {
     if (_selectedCourseCode == null) return;
     setState(() { _isLoading = true; _attendanceRecords = []; });
 
     String dateStr = _formatDateForApi(_selectedDate);
-    String url = 'http://192.168.100.5:8000/api/get_report/$_selectedCourseCode/$dateStr/';
+    String url = 'http://10.121.30.235:8000/api/get_report/$_selectedCourseCode/$dateStr/';
 
     try {
       var response = await Dio().get(url);
@@ -71,7 +88,7 @@ class _ViewReportsScreenState extends State<ViewReportsScreen> {
     if (_selectedCourseCode == null) return;
 
     String dateStr = _formatDateForApi(_selectedDate);
-    final String urlString = 'http://192.168.100.5:8000/api/export_csv/$_selectedCourseCode/$dateStr/';
+    final String urlString = 'http://10.121.30.235:8000/api/export_csv/$_selectedCourseCode/$dateStr/';
     final Uri url = Uri.parse(urlString);
 
     try {

@@ -26,7 +26,7 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
 
     try {
       // 🔥 CHANGE THIS TO YOUR EXACT IP ADDRESS
-      String url = 'http://192.168.100.5:8000/api/request_teacher/'; 
+      String url = 'http://10.121.30.235:8000/api/request_teacher/'; 
 
       final dio = Dio(BaseOptions(
         connectTimeout: const Duration(seconds: 4),

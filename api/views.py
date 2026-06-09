@@ -124,6 +124,9 @@ def mark_attendance(request):
         fs.delete(filename)
         return Response({"error": "Invalid course code provided."}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
+        
         fs.delete(filename)
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
@@ -293,7 +296,11 @@ def student_login(request):
         
         # Check if password matches
         if student.password == password:
-            return Response({"message": "Login successful!"}, status=status.HTTP_200_OK)
+            return Response({
+                   "message": "Login successful!",
+                   "student_name": student.name,
+                   "rollNo": student.rollNo
+            },  status=status.HTTP_200_OK)
         else:
             return Response({"error": "Incorrect password."}, status=status.HTTP_401_UNAUTHORIZED)
             
@@ -330,23 +337,31 @@ class CreateClassView(APIView):
     def post(self, request):
         class_name = request.data.get('name') 
         course_code = request.data.get('course_code') 
+        # 🌟 ADDITION 1: Catch the teacher's ID from Flutter
+        teacher_id = request.data.get('teacher_id') 
         
-        if not class_name or not course_code:
-            return Response({"error": "Class name and course code are required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not class_name or not course_code or not teacher_id:
+            return Response({"error": "Class name, course code, and teacher ID are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # 🌟 ADDITION 2: Verify the teacher exists in the database
+            teacher = Teacher.objects.get(id=teacher_id)
+        except Teacher.DoesNotExist:
+            return Response({"error": "Teacher account not found."}, status=status.HTTP_404_NOT_FOUND)
 
         # Generate the random 6-character uppercase code (e.g., 'X7B9WQ')
         secure_join_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
-        # 2. THE FIX: Tell Python to save it to the ClassRoom table!
+        # 🌟 ADDITION 3: Save the class AND attach the teacher!
         new_class = ClassRoom.objects.create(
             name=class_name,
-            course_code=course_code, # Passing the course code from Flutter!
-            join_code=secure_join_code
+            course_code=course_code, 
+            join_code=secure_join_code,
+            teacher=teacher # <--- THE FIX IS HERE
         )
 
-        print(f"DATABASE SUCCESS: Created class {new_class.name} with code {new_class.join_code}")
+        print(f"DATABASE SUCCESS: Created class {new_class.name} for Teacher ID {teacher_id}")
 
-        # Send the new code BACK to Flutter so the Teacher can see it
         return Response(
             {
                 "message": "Class created successfully!", 
@@ -354,7 +369,6 @@ class CreateClassView(APIView):
             }, 
             status=status.HTTP_201_CREATED
         )
-
 
 class TeacherLoginView(APIView):
     def post(self, request):
@@ -372,7 +386,8 @@ class TeacherLoginView(APIView):
             
             return Response({
                 "message": "Login successful!",
-                "teacher_name": teacher.name
+                "teacher_name": teacher.name,
+                "teacher_id": teacher.id
             }, status=status.HTTP_200_OK)
             
         except Teacher.DoesNotExist:
@@ -407,9 +422,16 @@ class TeacherRegistrationView(APIView):
 
 
 class GetTeacherClassesView(APIView):
-    def get(self, request):
-        # Grabs all class names and codes to populate the Flutter Dropdown
-        classes = ClassRoom.objects.all().values('name', 'course_code')
+    # Notice we added teacher_id to the parameters here
+    def get(self, request, teacher_id): 
+        
+        # THE FIX: Filter the database where the foreign key matches the logged-in teacher
+        classes = ClassRoom.objects.filter(teacher_id=teacher_id).values('name', 'course_code')
+        
+        # If they have no classes, return an empty list gracefully
+        if not classes:
+            return Response({"classes": []}, status=status.HTTP_200_OK)
+
         return Response({"classes": list(classes)}, status=status.HTTP_200_OK)
 
 class GetClassReportView(APIView):
@@ -434,8 +456,7 @@ class GetClassReportView(APIView):
         return Response({"message": "Success", "records": records}, status=status.HTTP_200_OK)
 
 
-import csv
-from django.http import HttpResponse
+
 
 class ExportClassAttendanceCSV(APIView):
     def get(self, request, course_code, date_str): 
@@ -461,3 +482,70 @@ class ExportClassAttendanceCSV(APIView):
             ])
 
         return response
+
+class GetMyStudentsView(APIView):
+    def get(self, request, teacher_id):
+        try:
+            # THIS IS THE MAGIC LINE: 
+            # It looks for approved students, but ONLY in classes owned by THIS specific teacher.
+            enrollments = Enrollment.objects.filter(
+                classroom__teacher_id=teacher_id, 
+                is_approved=True
+            )
+            
+            data = []
+            for item in enrollments:
+                data.append({
+                    "enrollment_id": item.id,
+                    "student_name": item.student.name,
+                    "rollNo": item.student.rollNo,
+                    "class_name": item.classroom.name,
+                    "course_code": item.classroom.course_code
+                })
+                
+            return Response({"students": data}, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def get_student_dashboard_classes(request, roll_no):
+    """Returns the classes a student has joined and their approval status."""
+    try:
+        # Find all enrollments for this specific roll number
+        enrollments = Enrollment.objects.filter(student__rollNo__iexact=roll_no)
+        
+        data = []
+        for e in enrollments:
+            data.append({
+                "class_name": e.classroom.name,
+                "course_code": e.classroom.course_code,
+                "status": "Approved" if e.is_approved else "Pending"
+            })
+            
+        return Response({"classes": data}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def get_student_attendance_history(request, roll_no):
+    """Returns the complete attendance history for a specific student."""
+    try:
+        # Get all attendance records, newest first
+        records = Attendance.objects.filter(student__rollNo__iexact=roll_no).order_by('-date', '-time')
+        
+        data = []
+        for r in records:
+            data.append({
+                "course_code": r.classroom.course_code,
+                "class_name": r.classroom.name,
+                "date": r.date.strftime("%Y-%m-%d"),
+                "time": r.time.strftime("%I:%M %p"),
+                "status": r.status
+            })
+            
+        return Response({"attendance": data}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

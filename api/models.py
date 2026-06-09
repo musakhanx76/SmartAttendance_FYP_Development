@@ -32,7 +32,7 @@ class ClassRoom(models.Model):
     name = models.CharField(max_length=100) # e.g., "Physics 101"
     course_code = models.CharField(max_length=20) # e.g., "PS101"
     join_code = models.CharField(max_length=15, unique=True) # The secret WhatsApp code e.g., "X7B9Q"
-
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, null=True, blank=True)
     def __str__(self):
         return f"{self.course_code} - {self.name}"
 
@@ -86,7 +86,7 @@ class Attendance(models.Model):
 
     class Meta:
         # This prevents a student from being marked present twice on the same day!
-        unique_together = ('student', 'date') 
+        unique_together = ('student','classroom', 'date') 
 
     def __str__(self):
         return f"{self.student.name} - {self.date} - {self.status}"

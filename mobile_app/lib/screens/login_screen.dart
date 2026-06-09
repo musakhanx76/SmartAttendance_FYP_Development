@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'student_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -26,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     // 🔥 CHANGE THIS TO YOUR ACTUAL IP ADDRESS
-    String url = 'http://192.168.100.5:8000/student_login/';
+    String url = 'http://10.121.30.235:8000/student_login/';
 
     try {
       var response = await Dio().post(url, data: {
@@ -36,6 +37,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200) {
         if (!mounted) return;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('rollNo', response.data['rollNo']); 
+        await prefs.setString('student_name', response.data['student_name']);
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const StudentDashboard()),

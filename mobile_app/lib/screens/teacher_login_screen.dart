@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'teacher_dashboard.dart'; 
 import 'teacher_registration_screen.dart';
 
@@ -27,7 +28,7 @@ class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
 
     try {
       // 🔥 CHANGE THIS TO YOUR EXACT IP ADDRESS
-      String url = 'http://192.168.100.5:8000/api/teacher_login/'; 
+      String url = 'http://10.121.30.235:8000/api/teacher_login/'; 
 
       final dio = Dio(BaseOptions(
         connectTimeout: const Duration(seconds: 4),
@@ -42,6 +43,10 @@ class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
       if (response.statusCode == 200) {
         if (!mounted) return;
         
+        // 🔥 STEP 1: SAVE THE ID TO THE PHONE'S MEMORY 🔥
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('teacher_id', response.data['teacher_id']); 
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Welcome back, ${response.data['teacher_name']}!'),
@@ -50,7 +55,6 @@ class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
         );
 
         /// THE FIX: Navigate to your existing Command Centre!
-        // (Make sure to import your teacher_command_centre.dart at the top of the file)
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const TeacherDashboard()), 

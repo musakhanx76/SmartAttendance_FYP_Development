@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CreateClassScreen extends StatefulWidget {
   const CreateClassScreen({Key? key}) : super(key: key);
@@ -25,18 +26,35 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
     });
 
     try {
-      // 🔥 CHANGE THIS TO YOUR EXACT IP ADDRESS (e.g., 192.168.1.45)
+      // 🌟 STEP 1: Get the logged-in Teacher's ID from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final int? teacherId = prefs.getInt('teacher_id');
+
+      if (teacherId == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: You must be logged in to create a class.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() => _isLoading = false);
+        return; // Stop the function if no ID is found
+      }
+
       // DO NOT remove the trailing slash / at the end of the URL!
-      String url = 'http://192.168.100.5:8000/api/create_class/'; 
+      String url = 'http://10.121.30.235:8000/api/create_class/'; 
 
       final dio = Dio(BaseOptions(
         connectTimeout: const Duration(seconds: 4),
         receiveTimeout: const Duration(seconds: 4),
       ));
 
+      // 🌟 STEP 2: Send the class details PLUS the teacher_id to Django
       var response = await dio.post(url, data: {
         'name': _courseNameController.text.trim(),
         'course_code': _courseCodeController.text.trim(),
+        'teacher_id': teacherId, // <--- THIS IS THE MISSING PIECE
       });
 
       if (response.statusCode == 201 || response.statusCode == 200) {

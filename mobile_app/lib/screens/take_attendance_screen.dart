@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import 'dart:io';
 
@@ -26,24 +27,40 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
 
   // 1. Grab the classes from Django for the Dropdown
   Future<void> _fetchClasses() async {
-    // 🔥 CHANGE THIS TO YOUR IP
-    String url = 'http://192.168.100.5:8000/api/get_classes/'; 
     try {
+      // 1. Get the Teacher ID from memory
+      final prefs = await SharedPreferences.getInstance();
+      final int? teacherId = prefs.getInt('teacher_id');
+
+      if (teacherId == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error: Not logged in. Please log out and log in again.')),
+        );
+        return;
+      }
+
+      // 2. Inject the ID into the URL
+      String url = 'http://10.121.30.235:8000/api/get_classes/$teacherId/';
+      
       var response = await Dio().get(url);
-      if (response.statusCode == 200 && response.data['classes'].isNotEmpty) {
+      
+      // Check if classes exist and list is not empty
+      if (response.statusCode == 200 && response.data['classes'] != null) {
         setState(() {
           _availableClasses = response.data['classes'];
-          // Default to the first class in the list
-          _selectedCourseCode = _availableClasses[0]['course_code']; 
+          if (_availableClasses.isNotEmpty) {
+            _selectedCourseCode = _availableClasses[0]['course_code']; 
+          }
         });
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error loading classes.')),
       );
     }
   }
-
   // 2. Open Camera, Capture Image, and Send to Django
   Future<void> _openCameraAndScan() async {
     if (_selectedCourseCode == null) return;
@@ -56,7 +73,7 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
     setState(() { _isLoading = true; });
 
     try {
-      String url = 'http://192.168.100.5:8000/api/mark_attendance/';
+      String url = 'http://10.121.30.235:8000/api/mark_attendance/';
 
       // 🌟 THIS IS THE MAGIC: We package the File AND the Course Code together!
       FormData formData = FormData.fromMap({

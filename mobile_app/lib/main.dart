@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'smart_camera.dart'; // Import our new camera file
 import 'screens/teacher_dashboard.dart';
 import 'screens/welcome_screen.dart';
@@ -30,7 +31,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   File? _videoFile;
   
   // Base URL pointing to your laptop's IP address
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://192.168.100.5:8000'));
+  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://10.121.30.235:8000'));
   bool _isUploading = false;
 
 
@@ -77,6 +78,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       // THE FIX: Check for success, stop the spinner, and reset the form!
       if (response.statusCode == 201 || response.statusCode == 200) {
+        if (!mounted) return;
+
+        // 🌟 OVERWRITE THE OLD STICKY NOTE WITH THE NEW STUDENT'S DATA
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('rollNo', rollNoController.text.trim()); 
+        await prefs.setString('student_name', nameController.text.trim()); 
+
         setState(() {
           _isUploading = false;      // 1. Stop the loading circle
           _videoFile = null;         // 2. Reset the Face Scan circle back to grey

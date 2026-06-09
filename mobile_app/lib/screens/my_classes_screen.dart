@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MyClassesScreen extends StatefulWidget {
   const MyClassesScreen({Key? key}) : super(key: key);
@@ -21,10 +22,22 @@ class _MyClassesScreenState extends State<MyClassesScreen> {
   Future<void> _fetchMyStudents() async {
     setState(() => _isLoading = true);
     
-    // 🔥 CHANGE TO YOUR IP
-    String url = 'http://192.168.100.5:8000/my_students/';
-
     try {
+      // 1. Grab the secure Teacher ID we saved during login
+      final prefs = await SharedPreferences.getInstance();
+      final int? teacherId = prefs.getInt('teacher_id');
+
+      if (teacherId == null) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error: Please log out and log back in.")),
+        );
+        return;
+      }
+
+      // 2. The SECURE URL (Notice we added /api/ and the $teacherId)
+      String url = 'http://10.121.30.235:8000/api/my_students/$teacherId/';
+
       var response = await Dio().get(url);
       if (response.statusCode == 200) {
         List<dynamic> allStudents = response.data['students'] ?? [];
@@ -41,7 +54,7 @@ class _MyClassesScreenState extends State<MyClassesScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to fetch classes.")),
+        const SnackBar(content: Text("Failed to fetch classes. Check server connection.")),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -50,7 +63,7 @@ class _MyClassesScreenState extends State<MyClassesScreen> {
 
   Future<void> _removeStudent(int enrollmentId, String courseKey, int index) async {
     // 🔥 CHANGE TO YOUR IP
-    String url = 'http://192.168.100.5:8000/remove_student/$enrollmentId/';
+    String url = 'http://10.121.30.235:8000/remove_student/$enrollmentId/';
 
     try {
       var response = await Dio().delete(url);
