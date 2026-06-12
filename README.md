@@ -20,7 +20,7 @@ Technology Stack:
 
 **Frontend (Mobile App)**
 * **Framework:** Flutter (Dart)
-* **State Management:** [Insert your state management, e.g., Provider / Riverpod / setState]
+* **State Management:** Built-in Stateful Widgets (setState)
 * **HTTP Client:** Dio
 
 **Backend (API Server)**
@@ -38,8 +38,8 @@ Ensure you have Python 3.8+ installed.
 
 ```bash
 # Clone the repository
-git clone [https://github.com/musakhanx76/SmartAttendance_FYP_Final_Release.git](https://github.com/musakhanx76/SmartAttendance_FYP_Final_Release.git)
-cd SmartAttendance_FYP_Final_Release/backend
+git clone https://github.com/musakhanx76/SmartAttendance_FYP_Development.git
+cd SmartAttendance_FYP_Development/backend
 
 # Create and activate a virtual environment
 python -m venv venv
