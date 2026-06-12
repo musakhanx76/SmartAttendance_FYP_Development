@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import 'dart:io';
+import '../api_constants.dart';
 
 class TakeAttendanceScreen extends StatefulWidget {
   const TakeAttendanceScreen({Key? key}) : super(key: key);
@@ -40,8 +41,7 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
         return;
       }
 
-      // 2. Inject the ID into the URL
-      String url = 'http://10.121.30.235:8000/api/get_classes/$teacherId/';
+      String url = '${ApiConstants.baseUrl}/get_classes/$teacherId/';
       
       var response = await Dio().get(url);
       
@@ -73,7 +73,7 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
     setState(() { _isLoading = true; });
 
     try {
-      String url = 'http://10.121.30.235:8000/api/mark_attendance/';
+      String url = '${ApiConstants.baseUrl}/mark_attendance/';
 
       // 🌟 THIS IS THE MAGIC: We package the File AND the Course Code together!
       FormData formData = FormData.fromMap({

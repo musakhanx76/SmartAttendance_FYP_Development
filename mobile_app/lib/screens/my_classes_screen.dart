@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../api_constants.dart';
 
 class MyClassesScreen extends StatefulWidget {
   const MyClassesScreen({Key? key}) : super(key: key);
@@ -35,8 +36,7 @@ class _MyClassesScreenState extends State<MyClassesScreen> {
         return;
       }
 
-      // 2. The SECURE URL (Notice we added /api/ and the $teacherId)
-      String url = 'http://10.121.30.235:8000/api/my_students/$teacherId/';
+      String url = '${ApiConstants.baseUrl}/my_students/$teacherId/';
 
       var response = await Dio().get(url);
       if (response.statusCode == 200) {
@@ -62,8 +62,8 @@ class _MyClassesScreenState extends State<MyClassesScreen> {
   }
 
   Future<void> _removeStudent(int enrollmentId, String courseKey, int index) async {
-    // 🔥 CHANGE TO YOUR IP
-    String url = 'http://10.121.30.235:8000/remove_student/$enrollmentId/';
+    
+    String url = '${ApiConstants.baseUrl}/remove_student/$enrollmentId/';
 
     try {
       var response = await Dio().delete(url);

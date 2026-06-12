@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../api_constants.dart';
 
 class CreateClassScreen extends StatefulWidget {
   const CreateClassScreen({Key? key}) : super(key: key);
@@ -43,7 +44,7 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
       }
 
       // DO NOT remove the trailing slash / at the end of the URL!
-      String url = 'http://10.121.30.235:8000/api/create_class/'; 
+      String url = '${ApiConstants.baseUrl}/create_class/'; 
 
       final dio = Dio(BaseOptions(
         connectTimeout: const Duration(seconds: 4),

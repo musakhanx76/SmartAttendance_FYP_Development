@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'join_class_screen.dart';
+import '../api_constants.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({Key? key}) : super(key: key);
@@ -44,9 +45,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
       }
 
       // 2. Fetch Classes and Attendance simultaneously 
-      // 🔥 DO NOT FORGET TO KEEP YOUR IP ADDRESS UPDATED HERE
-      String classesUrl = 'http://10.121.30.235:8000/api/student_classes/$rollNo/';
-      String attendanceUrl = 'http://10.121.30.235:8000/api/student_attendance/$rollNo/';
+      
+     String classesUrl = '${ApiConstants.baseUrl}/student_classes/$rollNo/';
+     String attendanceUrl = '${ApiConstants.baseUrl}/student_attendance/$rollNo/';
 
       final dio = Dio();
       

@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import CreateClassView, TeacherLoginView, TeacherRegistrationView, GetTeacherClassesView, GetClassReportView, ExportClassAttendanceCSV, mark_attendance, GetMyStudentsView, get_student_dashboard_classes, get_student_attendance_history
+from .views import CreateClassView, TeacherLoginView, TeacherRegistrationView, GetTeacherClassesView, GetClassReportView, ExportClassAttendanceCSV, mark_attendance, GetMyStudentsView, get_student_dashboard_classes, get_student_attendance_history, student_login, register_student, join_class, get_pending_requests, approve_student, remove_student_from_class
 
 urlpatterns = [
    
@@ -13,5 +13,10 @@ urlpatterns = [
     path('mark_attendance/', mark_attendance, name='mark_attendance'),
     path('student_classes/<str:roll_no>/', get_student_dashboard_classes, name='student_classes'),
     path('student_attendance/<str:roll_no>/', get_student_attendance_history, name='student_attendance'),
-    
+    path('student_login/', student_login, name='student_login'),
+    path('join_class/', join_class, name='join_class'),
+    path('register/', register_student, name='register'),
+    path('get_pending_requests/<int:teacher_id>/', get_pending_requests, name='get_pending_requests'),
+    path('approve_student/<int:enrollment_id>/', approve_student, name='approve_student'),
+    path('remove_student/<int:enrollment_id>/', remove_student_from_class, name='remove_student'),
 ]

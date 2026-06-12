@@ -3,7 +3,8 @@ import csv
 import string
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from .serializers import StudentSerializer
 """from .models import Student
@@ -197,6 +198,7 @@ def get_attendance_report(request, date_str):
 
 #Student Requesting to join a class using a code
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def join_class(request):
     roll_no = request.data.get('rollNo')
     join_code = request.data.get('join_code')
@@ -224,9 +226,10 @@ def join_class(request):
 
 #for teacher Viewing all pending requests
 @api_view(['GET'])
-def get_pending_requests(request):
+@permission_classes([AllowAny])
+def get_pending_requests(request, teacher_id):
     try:
-        pending = Enrollment.objects.filter(is_approved=False)
+        pending = Enrollment.objects.filter(is_approved=False, classroom__teacher_id=teacher_id)
         data = []
         for req in pending:
             data.append({
@@ -272,7 +275,8 @@ def get_approved_students(request):
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 #for removing students from the class
-@api_view(['DELETE'])
+@api_view(['DELETE']) 
+@permission_classes([AllowAny])
 def remove_student_from_class(request, enrollment_id):
     """Allows a teacher to remove a student from a specific class."""
     try:
@@ -460,16 +464,17 @@ class GetClassReportView(APIView):
 
 class ExportClassAttendanceCSV(APIView):
     def get(self, request, course_code, date_str): 
-        Attendance.objects.filter(classroom__course_code=course_code, date=date_str)
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = f'attachment; filename="Attendance_{course_code}_{date_str}.csv"'
 
         writer = csv.writer(response)
         writer.writerow(['Class Code', 'Student Name', 'Roll Number', 'Date', 'Time', 'Status'])
 
-        # Filter by class AND date
-        student_ids = Enrollment.objects.filter(classroom__course_code=course_code, is_approved=True).values_list('student', flat=True)
-        attendances = Attendance.objects.filter(student__id__in=student_ids, date=date_str).order_by('student__name')
+        # 🔥 THE FIX: Directly query Attendance by class and date, and add .distinct()
+        attendances = Attendance.objects.filter(
+            classroom__course_code=course_code, 
+            date=date_str
+        ).distinct().order_by('student__name')
 
         for record in attendances:
             writer.writerow([
@@ -482,7 +487,6 @@ class ExportClassAttendanceCSV(APIView):
             ])
 
         return response
-
 class GetMyStudentsView(APIView):
     def get(self, request, teacher_id):
         try:

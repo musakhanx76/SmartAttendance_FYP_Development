@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import '../api_constants.dart';
 
 class TeacherRegistrationScreen extends StatefulWidget {
   const TeacherRegistrationScreen({Key? key}) : super(key: key);
@@ -25,8 +26,8 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
     });
 
     try {
-      // 🔥 CHANGE THIS TO YOUR EXACT IP ADDRESS
-      String url = 'http://10.121.30.235:8000/api/request_teacher/'; 
+      
+      String url = '${ApiConstants.baseUrl}/request_teacher/';
 
       final dio = Dio(BaseOptions(
         connectTimeout: const Duration(seconds: 4),

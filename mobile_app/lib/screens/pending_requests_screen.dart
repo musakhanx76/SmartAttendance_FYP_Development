@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import '../api_constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PendingRequestsScreen extends StatefulWidget {
   const PendingRequestsScreen({Key? key}) : super(key: key);
@@ -20,29 +22,50 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
 
   Future<void> _fetchRequests() async {
     setState(() => _isLoading = true);
-    
-    // 🔥 CHANGE THIS TO YOUR ACTUAL IP ADDRESS
-    String url = 'http://10.121.30.235:8000/pending_requests/';
 
     try {
+      // 🔥 1. Grab the logged-in teacher's ID from memory
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Note: Make sure the key matches exactly how you saved it in login!
+      // If you saved it as a String, use prefs.getString. If Int, use getInt.
+      final int? teacherId = prefs.getInt('teacher_id'); 
+
+      // Safety check: if they somehow aren't logged in, stop the crash
+      if (teacherId == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Session expired. Please log out and log back in.")),
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // 🔥 2. Now it is perfectly safe to inject into the URL
+      String url = '${ApiConstants.baseUrl}/get_pending_requests/$teacherId/';
+
       var response = await Dio().get(url);
+      
       if (response.statusCode == 200) {
         setState(() {
           _requests = response.data['requests'] ?? [];
         });
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Failed to fetch requests. Is the server running?")),
       );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   Future<void> _approveStudent(int enrollmentId, int index) async {
     // 🔥 CHANGE THIS TO YOUR ACTUAL IP ADDRESS
-    String url = 'http://10.121.30.235:8000/approve_student/$enrollmentId/';
+    String url = '${ApiConstants.baseUrl}/approve_student/$enrollmentId/';
 
     try {
       var response = await Dio().post(url);

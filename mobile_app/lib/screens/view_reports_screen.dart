@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
+import '../api_constants.dart';
 
 class ViewReportsScreen extends StatefulWidget {
   const ViewReportsScreen({Key? key}) : super(key: key);
@@ -39,7 +40,7 @@ class _ViewReportsScreenState extends State<ViewReportsScreen> {
       }
 
       // 2. Inject the ID into the URL (Make sure this matches your Django urls.py)
-      String url = 'http://10.121.30.235:8000/api/get_classes/$teacherId/';
+      String url = '${ApiConstants.baseUrl}/get_classes/$teacherId/';
       
       var response = await Dio().get(url);
       if (response.statusCode == 200) {
@@ -66,7 +67,7 @@ class _ViewReportsScreenState extends State<ViewReportsScreen> {
     setState(() { _isLoading = true; _attendanceRecords = []; });
 
     String dateStr = _formatDateForApi(_selectedDate);
-    String url = 'http://10.121.30.235:8000/api/get_report/$_selectedCourseCode/$dateStr/';
+    String url = '${ApiConstants.baseUrl}/get_report/$_selectedCourseCode/$dateStr/';
 
     try {
       var response = await Dio().get(url);
@@ -88,9 +89,8 @@ class _ViewReportsScreenState extends State<ViewReportsScreen> {
     if (_selectedCourseCode == null) return;
 
     String dateStr = _formatDateForApi(_selectedDate);
-    final String urlString = 'http://10.121.30.235:8000/api/export_csv/$_selectedCourseCode/$dateStr/';
+    final String urlString = '${ApiConstants.baseUrl}/export_csv/$_selectedCourseCode/$dateStr/';
     final Uri url = Uri.parse(urlString);
-
     try {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } catch (e) {

@@ -122,13 +122,13 @@ class WelcomeScreen extends StatelessWidget {
               child: Icon(icon, color: color, size: 28),
             ),
             const SizedBox(width: 20),
-            Text(
+            Expanded(
+              child: Text(
               title,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+              overflow: TextOverflow.ellipsis, // This adds '...' if the text is too long!
             ),
-            const Spacer(),
-            Icon(Icons.arrow_forward_ios, color: Colors.grey[400], size: 20),
-            const SizedBox(width: 20),
+           ),
           ],
         ),
       ),

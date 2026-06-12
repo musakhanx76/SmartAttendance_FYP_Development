@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'student_dashboard.dart';
+import '../api_constants.dart';
+import 'dart:convert';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -26,8 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    // 🔥 CHANGE THIS TO YOUR ACTUAL IP ADDRESS
-    String url = 'http://10.121.30.235:8000/student_login/';
+    String url = '${ApiConstants.baseUrl}/student_login/'; // Using your uppercase constant!
 
     try {
       var response = await Dio().post(url, data: {
@@ -35,11 +36,35 @@ class _LoginScreenState extends State<LoginScreen> {
         'password': _passwordController.text.trim(),
       });
 
+      // 🔥 1. PRINT THE RAW DATA TO SEE THE HIDDEN DJANGO ERROR
+      print("====== RAW RESPONSE DATA: ${response.data} ======");
+
+      // 🔥 2. SAFETY NET: Convert String to JSON if Django messes up
+      var responseData = response.data;
+      if (responseData is String) {
+        try {
+          responseData = jsonDecode(responseData);
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Server returned HTML text. Check the VS Code Terminal!"), 
+              backgroundColor: Colors.red
+            ),
+          );
+          setState(() => _isLoading = false);
+          return; // Stop the crash!
+        }
+      }
+
       if (response.statusCode == 200) {
         if (!mounted) return;
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('rollNo', response.data['rollNo']); 
-        await prefs.setString('student_name', response.data['student_name']);
+        
+        // 🔥 3. Safely extract data using the parsed responseData
+        await prefs.setString('rollNo', responseData['rollNo'].toString()); 
+        await prefs.setString('student_name', responseData['student_name'].toString());
+        
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const StudentDashboard()),
@@ -47,9 +72,17 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } on DioException catch (e) {
       String errorMessage = "Failed to connect to server.";
+      
+      // 🔥 4. Safe Error Catching
       if (e.response != null && e.response?.data != null) {
-        errorMessage = e.response?.data['error'] ?? errorMessage;
+        var errorData = e.response?.data;
+        if (errorData is String) {
+          errorMessage = "Server Error (Missing trailing slash in Django urls.py?)";
+        } else {
+          errorMessage = errorData['error'] ?? errorMessage;
+        }
       }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(errorMessage), backgroundColor: Colors.redAccent),
       );

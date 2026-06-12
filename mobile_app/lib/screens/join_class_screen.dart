@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import '../api_constants.dart';
 
 class JoinClassScreen extends StatefulWidget {
   const JoinClassScreen({Key? key}) : super(key: key);
@@ -24,7 +25,7 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
     setState(() { _isLoading = true; });
 
     // 🔥 CHANGE THIS TO YOUR ACTUAL IP ADDRESS
-    String url = 'http://10.121.30.235:8000/join_class/';
+    String url = '${ApiConstants.baseUrl}/join_class/';
 
     try {
       var response = await Dio().post(url, data: {

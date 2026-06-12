@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'teacher_dashboard.dart'; 
 import 'teacher_registration_screen.dart';
+import '../api_constants.dart';
 
 class TeacherLoginScreen extends StatefulWidget {
   const TeacherLoginScreen({Key? key}) : super(key: key);
@@ -27,8 +28,8 @@ class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
     });
 
     try {
-      // 🔥 CHANGE THIS TO YOUR EXACT IP ADDRESS
-      String url = 'http://10.121.30.235:8000/api/teacher_login/'; 
+      
+      String url = '${ApiConstants.baseUrl}/teacher_login/'; 
 
       final dio = Dio(BaseOptions(
         connectTimeout: const Duration(seconds: 4),

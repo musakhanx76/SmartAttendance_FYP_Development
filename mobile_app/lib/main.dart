@@ -7,6 +7,7 @@ import 'smart_camera.dart'; // Import our new camera file
 import 'screens/teacher_dashboard.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/student_dashboard.dart';
+import 'api_constants.dart';
 
 void main() {
   // Ensures plugins are loaded before app starts
@@ -31,7 +32,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   File? _videoFile;
   
   // Base URL pointing to your laptop's IP address
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://10.121.30.235:8000'));
+  final Dio _dio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
   bool _isUploading = false;
 
 
