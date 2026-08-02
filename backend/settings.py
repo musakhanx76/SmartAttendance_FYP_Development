@@ -79,7 +79,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'smart_attendance_db', # Must match pgAdmin exactly
+        'NAME': 'smart_attendance_db',
         'USER': 'postgres',
         'PASSWORD': '123456',
         'HOST': 'localhost',

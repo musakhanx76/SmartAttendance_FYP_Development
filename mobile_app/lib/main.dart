@@ -4,7 +4,6 @@ import 'package:camera/camera.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'smart_camera.dart'; // Import our new camera file
-import 'screens/teacher_dashboard.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/student_dashboard.dart';
 import 'api_constants.dart';
@@ -14,7 +13,7 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const MaterialApp(
     debugShowCheckedModeBanner: false,
-    home: const WelcomeScreen(),
+    home: WelcomeScreen(),
   ));
 }
 

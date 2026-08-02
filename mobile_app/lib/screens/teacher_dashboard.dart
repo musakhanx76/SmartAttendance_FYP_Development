@@ -5,7 +5,7 @@ import 'view_reports_screen.dart';
 import 'pending_requests_screen.dart';
 import 'my_classes_screen.dart';
 class TeacherDashboard extends StatelessWidget {
-  const TeacherDashboard({Key? key}) : super(key: key);
+  const TeacherDashboard({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -147,7 +147,7 @@ class TeacherDashboard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             gradient: LinearGradient(
-              colors: [color.withOpacity(0.8), color],
+              colors: [color.withValues(alpha: 0.8), color],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),

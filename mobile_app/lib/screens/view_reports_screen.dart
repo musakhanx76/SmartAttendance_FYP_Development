@@ -5,7 +5,7 @@ import 'package:dio/dio.dart';
 import '../api_constants.dart';
 
 class ViewReportsScreen extends StatefulWidget {
-  const ViewReportsScreen({Key? key}) : super(key: key);
+  const ViewReportsScreen({super.key});
 
   @override
   _ViewReportsScreenState createState() => _ViewReportsScreenState();

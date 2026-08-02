@@ -1,0 +1,8 @@
+Django>=4.0
+djangorestframework
+djangorestframework-simplejwt
+psycopg2-binary
+django-cors-headers
+opencv-python
+Pillow
+face_recognition

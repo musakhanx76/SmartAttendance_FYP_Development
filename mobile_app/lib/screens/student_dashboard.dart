@@ -5,7 +5,7 @@ import 'join_class_screen.dart';
 import '../api_constants.dart';
 
 class StudentDashboard extends StatefulWidget {
-  const StudentDashboard({Key? key}) : super(key: key);
+  const StudentDashboard({super.key});
 
   @override
   _StudentDashboardState createState() => _StudentDashboardState();

@@ -4,7 +4,7 @@ import 'dart:async'; // Needed for the timer
 
 class SmartFaceCamera extends StatefulWidget {
   final List<CameraDescription> cameras;
-  const SmartFaceCamera({Key? key, required this.cameras}) : super(key: key);
+  const SmartFaceCamera({super.key, required this.cameras});
 
   @override
   _SmartFaceCameraState createState() => _SmartFaceCameraState();

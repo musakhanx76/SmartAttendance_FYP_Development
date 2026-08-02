@@ -4,7 +4,7 @@ import '../api_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PendingRequestsScreen extends StatefulWidget {
-  const PendingRequestsScreen({Key? key}) : super(key: key);
+  const PendingRequestsScreen({super.key});
 
   @override
   _PendingRequestsScreenState createState() => _PendingRequestsScreenState();

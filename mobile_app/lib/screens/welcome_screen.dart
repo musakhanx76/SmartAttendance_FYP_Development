@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'teacher_dashboard.dart';
 import 'login_screen.dart';
 import 'teacher_login_screen.dart';
 import '../main.dart'; // Importing your RegisterScreen from main.dart
 
 class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({Key? key}) : super(key: key);
+  const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -108,16 +107,16 @@ class WelcomeScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.5), width: 2),
+          border: Border.all(color: color.withValues(alpha: 0.5), width: 2),
           boxShadow: [
-            BoxShadow(color: color.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4)),
+            BoxShadow(color: color.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4)),
           ],
         ),
         child: Row(
           children: [
             const SizedBox(width: 20),
             CircleAvatar(
-              backgroundColor: color.withOpacity(0.1),
+              backgroundColor: color.withValues(alpha: 0.1),
               radius: 24,
               child: Icon(icon, color: color, size: 28),
             ),

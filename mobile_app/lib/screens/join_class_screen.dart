@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import '../api_constants.dart';
 
 class JoinClassScreen extends StatefulWidget {
-  const JoinClassScreen({Key? key}) : super(key: key);
+  const JoinClassScreen({super.key});
 
   @override
   _JoinClassScreenState createState() => _JoinClassScreenState();

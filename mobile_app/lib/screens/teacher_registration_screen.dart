@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import '../api_constants.dart';
 
 class TeacherRegistrationScreen extends StatefulWidget {
-  const TeacherRegistrationScreen({Key? key}) : super(key: key);
+  const TeacherRegistrationScreen({super.key});
 
   @override
   _TeacherRegistrationScreenState createState() => _TeacherRegistrationScreenState();

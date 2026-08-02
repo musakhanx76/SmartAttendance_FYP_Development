@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
-import 'dart:io';
 import '../api_constants.dart';
 
 class TakeAttendanceScreen extends StatefulWidget {
-  const TakeAttendanceScreen({Key? key}) : super(key: key);
+  const TakeAttendanceScreen({super.key});
 
   @override
   _TakeAttendanceScreenState createState() => _TakeAttendanceScreenState();

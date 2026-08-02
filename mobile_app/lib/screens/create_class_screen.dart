@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../api_constants.dart';
 
 class CreateClassScreen extends StatefulWidget {
-  const CreateClassScreen({Key? key}) : super(key: key);
+  const CreateClassScreen({super.key});
 
   @override
   _CreateClassScreenState createState() => _CreateClassScreenState();

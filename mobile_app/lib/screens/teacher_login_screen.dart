@@ -6,7 +6,7 @@ import 'teacher_registration_screen.dart';
 import '../api_constants.dart';
 
 class TeacherLoginScreen extends StatefulWidget {
-  const TeacherLoginScreen({Key? key}) : super(key: key);
+  const TeacherLoginScreen({super.key});
 
   @override
   _TeacherLoginScreenState createState() => _TeacherLoginScreenState();
